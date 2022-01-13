@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Теория графов</title>
+    <script src="konva.js"></script>
+    <script src="main.js"></script>
+    <script src="tasks.js"></script>
+    <link rel="stylesheet" type="text/css" href="style/main.css"/>
+</head>
+<body>
+    <div class="navbar">
+        <div class="dropdown">
+            <button class="dropbtn1" onclick="dropDown()">Файл</button>
+            <div class="dropdown-content" id="dropdown">
+                <a onclick="document.getElementById('adjacency_file').click()">Открыть матрицу смежности</a>
+                <input id="adjacency_file" type="file" style="display: none">
+                <a onclick="document.getElementById('incidence_file').click()">Открыть матрицу инцидентности</a>
+                <input id="incidence_file" type="file" style="display: none">
+                <a onclick="document.getElementById('edges_list').click()">Открыть лист рёбер</a>
+                <input id="edges_list" type="file" style="display: none">
+                <a onclick="saveAdjMtx()">Сохранить матрицу смежности</a>
+                <a onclick="saveIncMtx()">Сохранить матрицу инцидентности</a>
+                <a onclick="saveEdges()">Сохранить лист рёбер</a>
+                <a onclick="saveImg()">Сохранить изображение графа</a>
+                <a onclick="window.close()">Выйти из программы</a>
+            </div>
+        </div>
+        <a onmouseover="hover()" onclick="show()">Show</a>
+        <a onmouseover="hover()" id="undo">
+            <img src="style/undo-white.png" height="14">
+        </a>
+        <a onmouseover="hover()" id="redo">
+            <img src="style/redo-white.png" height="14">
+        </a>
+        <a onmouseover="hover()" id="creating_node">Добавить вершину</a>
+        <a onmouseover="hover()" id="creating_edge">Добавить ребро</a>
+        <div onmouseover="hoverTasks()" class="dropdown">
+            <button class="dropbtn2" onclick="dropDownTasks()">Алгоритмы</button>
+            <div class="dropdown-content" id="dropdownTasks">
+                <a onclick="addTask(bfs)">2. Поиск в ширину</a>
+            </div>
+        </div>
+        <div onmouseover="hoverAbout()" class="dropdown">
+            <button class="dropAbout" onclick="dropDownAbout()">Об авторе</button>
+            <div class="dropdown-content" id="dropdownAbout">
+                <a>Программа "Редактор графов".
+                    <br>Сделал студент М8О-410Б-18
+                    <br>Ризоев Бахтовар Махмадалиевич</a>
+            </div>
+        </div>
+        <a onmouseover="hover()" href="документы/Туториал%20по%20использованию%20редактора%20графов.pdf">Туториал</a>
+        <a onmouseover="hover()" href="документы/Graphs-labs2019.pdf">ТЗ</a>
+    </div>
+
+    <div onmouseover="hover()">
+        <div id="container" class="box1"></div>
+        <div class="box2" style="overflow-x: scroll; overflow-y: scroll">
+            <h2>Матрица смежности</h2><br>
+            <table id="matrix">
+                <tr>
+                    <td>&nbsp</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Контекстное меню для ребра -->
+    <div id="edge_menu" class="menu">
+        <button class="menu_button" id="orientation">Ориентированный</button>
+        <hr class="margined">
+        <button class="menu_button" id="inverse">Инверсия</button>
+    </div>
+
+    <!-- Контекстное меню для вершины -->
+    <div id="node_menu" class="menu">
+        <button class="menu_button" id="make_a_loop">Сделать петлю</button>
+    </div>
+</body>
+
+<script>
+    window.addEventListener("beforeunload", function (e) {
+        if (historyAt > 0 || history[0].redo === undefined)
+            e.returnValue = 'Dialog text here'
+    })
+
+    function dropDown() {
+        document.getElementById("dropdown").classList.toggle("show")
+    }
+
+    function dropDownTasks() {
+        document.getElementById("dropdownTasks").classList.toggle("show")
+    }
+
+    function dropDownAbout() {
+        document.getElementById("dropdownAbout").classList.toggle("show")
+    }
+
+    trs = document.getElementById('matrix').getElementsByTagName("tr")
+
+    //изменения через матрицу смежности
+    document.getElementById('matrix').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault()
+
+            if (oldTdValue === e.path[0].textContent)
+                return
+
+            let i = 1
+
+            for (i; i < e.path[1].cells.length; i++) {
+                if (e.path[1].cells[i] === e.path[0])
+                    break
+            }
+
+            changedMatrix(parseInt(e.path[1].cells[0].textContent), i - 1, e.path[0].textContent, parseInt(oldTdValue))
+            hasChanged = true
+            document.activeElement.blur()
+        }
+    })
+
+    document.getElementById('matrix').addEventListener('mousedown', (e) => {
+        if (changingTd !== undefined && !hasChanged) {
+            changingTd.textContent = oldTdValue
+        }
+
+        changingTd = e.path[0]
+        oldTdValue = e.path[0].textContent
+        hasChanged = false
+    })
+
+    //здесь добавление в контейнер
+    let stage = new Konva.Stage({
+        container: 'container',
+        width: width,
+        height: height,
+    })
+
+    let layer = new Konva.Layer()
+    stage.add(layer)
+
+    layer.add(new Konva.Rect({
+        width: width,
+        height: height,
+        fill: 'lightgrey',
+        opacity: 0.3
+    }))
+
+    document.getElementById('adjacency_file').addEventListener('change', (e) => {
+        let file = e.target.files[0]
+
+        if (file === undefined)
+            return
+
+        addHistoryCommand({
+            undo: () => location.reload()
+        })
+        nodes.clear()
+        layer.destroyChildren()
+        layer.add(new Konva.Rect({
+            width: width,
+            height: height,
+            fill: 'lightgrey',
+            opacity: 0.3
+        }))
+
+        while (trs.length > 1)
+            trs[1].remove()
+
+        while (trs[0].childNodes.length !== 2)
+            trs[0].childNodes[2].remove()
+
+        let reader = new FileReader()
+        reader.readAsText(file)
+        reader.onload = readerEvent => {
+            let matrix = [], count = 0
+            let text = readerEvent.target.result, res, idx
+
+            while ((idx = text.indexOf("#")) !== -1) {
+                let idx2 = text.substring(idx).indexOf("\r\n") + idx
+                res = text.substring(0, idx)
+
+                if (idx2 !== -1) {
+                    res += text.substring(idx2 + 2)
+                }
+
+                text = res
+            }
+
+            text = res.trim()
+            text = text.split("\r\n")
+            let nodes = text[0].split(" ")
+
+            for (let i = 1; i < text.length; i++) {
+                let ints = text[i].split(" ").slice(1)
+                count += ints.length
+                matrix.push(ints)
+            }
+
+            if (Math.pow(matrix.length, 2) !== count || Math.pow(nodes.length, 2) !== count) {
+                alert("Файл невалиден!")
+                return
+            }
+
+            for (let i = 0; i < matrix.length; i++) {
+                addNode(xCenter + 100 * Math.cos(90 + 2 * Math.PI * i / matrix.length),
+                        yCenter + 100 * Math.sin(90 + 2 * Math.PI * i / matrix.length), i, nodes[i])
+            }
+
+            for (let i = 0; i < matrix.length; i++) {
+                for (let j = i; j < matrix[i].length; j++) {
+                    addToMatrix(i, j, matrix[i][j], matrix[j][i])
+                }
+            }
+
+            document.getElementById('adjacency_file').value = null
+        }
+    })
+
+    document.getElementById('incidence_file').addEventListener('change', (e) => {
+        let file = e.target.files[0]
+
+        if (file === undefined)
+            return
+
+        addHistoryCommand({
+            undo: () => location.reload()
+        })
+        nodes.clear()
+        layer.destroyChildren()
+        layer.add(new Konva.Rect({
+            width: width,
+            height: height,
+            fill: 'lightgrey',
+            opacity: 0.3
+        }))
+
+        while (trs.length > 1)
+            trs[1].remove()
+
+        while (trs[0].childNodes.length !== 2)
+            trs[0].childNodes[2].remove()
+
+        let reader = new FileReader()
+        reader.readAsText(file)
+        reader.onload = readerEvent => {
+            let matrix = []
+            let text = readerEvent.target.result
+            let idx = text.indexOf("#")
+
+            if (idx !== -1) {
+                let idx2 = text.substring(idx).indexOf("\r\n")
+                text = text.substring(0, idx)
+                if (idx2 !== -1) {
+                    text += text.substring(idx2)
+                }
+            }
+
+            text = text.trim()
+            text.split("\r\n")
+                .forEach(s => matrix.push(s.split(" ")))
+
+            for (let i = 0; i < matrix.length; i++) {
+                addNode(xCenter + 100 * Math.cos(90 + 2 * Math.PI * i / matrix.length),
+                    yCenter + 100 * Math.sin(90 + 2 * Math.PI * i / matrix.length), i)
+            }
+
+            let from = undefined, to = undefined, isNotOriented
+
+            for (let i = 0; i < matrix[0].length; i++) {
+                for (let j = 0; j < matrix.length; j++) {
+                    if (matrix[j][i] !== '0') {
+                        if (matrix[j][i] === '1') {
+                            if (from === undefined) {
+                                from = j
+                            } else {
+                                to = j
+                                isNotOriented = true
+                                break
+                            }
+                        } else {
+                            to = j
+                        }
+                    }
+                }
+
+                if (isNotOriented)
+                    addToMatrix(from, to, 1, 1)
+                else
+                    addToMatrix(from, to, 1, 0)
+                from = undefined
+                to = undefined
+                isNotOriented = false
+            }
+
+            document.getElementById('incidence_file').value = null
+        }
+    })
+
+    document.getElementById('edges_list').addEventListener('change', (e) => {
+        let file = e.target.files[0]
+
+        if (file === undefined)
+            return
+
+        addHistoryCommand({
+            undo: () => location.reload()
+        })
+        nodes.clear()
+        layer.destroyChildren()
+        layer.add(new Konva.Rect({
+            width: width,
+            height: height,
+            fill: 'lightgrey',
+            opacity: 0.3
+        }))
+
+        while (trs.length > 1)
+            trs[1].remove()
+
+        while (trs[0].childNodes.length !== 2)
+            trs[0].childNodes[2].remove()
+
+        let reader = new FileReader()
+        reader.readAsText(file)
+        reader.onload = readerEvent => {
+            let matrix
+            let text = readerEvent.target.result
+            let idx = text.indexOf("#")
+
+            if (idx !== -1) {
+                let idx2 = text.substring(idx).indexOf("\r\n")
+                text = text.substring(0, idx)
+                if (idx2 !== -1) {
+                    text += text.substring(idx2)
+                }
+            }
+
+            text = text.trim()
+            text = text.substring(text.indexOf('{') + 1, text.indexOf('}') - 1)
+            matrix = text.split("), ")
+            text = ''
+            matrix.forEach(t => text += t.replace(/[\d]*\([\d]*/, ''))
+            text = text.substring(2)
+            let set = new Set(text.split(", "))
+
+            for (let i = 0; i < set.size; i++) {
+                addNode(xCenter + 100 * Math.cos(90 + 2 * Math.PI * i / set.size),
+                    yCenter + 100 * Math.sin(90 + 2 * Math.PI * i / set.size), i)
+            }
+
+            matrix.forEach(t => {
+                let list = t.replace(/[\d]*\(/, '')
+                list = list.split(", ")
+                addToMatrix(parseInt(list[1]), parseInt(list[2]), list[0], list[0])
+            })
+
+            document.getElementById('edges_list').value = null
+        }
+    })
+
+    async function saveAdjMtx() {
+        let text = '  '
+
+        for (let i = 1; i < trs.length; i++) {
+            for (let j = 1; j < trs[i].cells.length; j++) {
+                text += trs[i].cells[j].textContent
+
+                if (j !== trs[i].cells.length - 1)
+                    text += " "
+            }
+
+            if (i !== trs.length - 1)
+                text += "\r\n"
+        }
+
+        let handle = await window.showSaveFilePicker()
+        let stream = await handle.createWritable()
+        await stream.write(text)
+        await stream.close()
+    }
+
+    async function saveIncMtx() {
+        let text = ''
+        let mtx = [], edgesCount = 0
+        let x, y
+
+        for (let i = 0; i < nodesDrawn.size; i++)
+            mtx.push(Array(curves.size).fill(0))
+
+        for (let i = 1; i < trs.length; i++) {
+            for (let j = i; j < trs[i].cells.length; j++) {
+                x = trs[i].cells[j].textContent
+                y = trs[j].cells[i].textContent
+
+                if (x !== '0' && y !== '0') {
+                    mtx[i - 1][edgesCount] = 1
+                    mtx[j - 1][edgesCount] = 1
+                    edgesCount++
+                } else if (x !== '0' && y === '0') {
+                    mtx[i - 1][edgesCount] = 1
+                    mtx[j - 1][edgesCount] = -1
+                    edgesCount++
+                } else if (x === '0' && y !== '0') {
+                    mtx[i - 1][edgesCount] = -1
+                    mtx[j - 1][edgesCount] = 1
+                    edgesCount++
+                }
+            }
+        }
+
+        for (let i = 0; i < mtx.length; i++) {
+            for (let j = 0; j < mtx[i].length; j++) {
+                text += mtx[i][j]
+
+                if (j !== mtx[i].length - 1)
+                    text += " "
+            }
+
+            if (i !== mtx.length - 1)
+                text += "\r\n"
+        }
+
+        let handle = await window.showSaveFilePicker()
+        let stream = await handle.createWritable()
+        await stream.write(text)
+        await stream.close()
+    }
+
+    async function saveEdges() {
+        let text = 'Edges{', edgesCount = 0, x, y, part
+
+        for (let i = 1; i < trs.length; i++) {
+            for (let j = i; j < trs[i].cells.length; j++) {
+                x = trs[i].cells[j].textContent
+                y = trs[j].cells[i].textContent
+
+                if (x !== '0' || y !== '0') {
+                    text += `${edgesCount++}(${(x !== '0') ? x : y}, ${i - 1}, ${j - 1}), `
+                }
+            }
+        }
+
+        text = text.substring(0, text.length - 2)
+        text += '}'
+
+        let handle = await window.showSaveFilePicker()
+        let stream = await handle.createWritable()
+        await stream.write(text)
+        await stream.close()
+    }
+
+    async function saveImg() {
+        let gh = stage.toDataURL({
+            mimeType: 'image/png',
+            x: 0,
+            y: 0,
+            width: width,
+            height: height
+        })
+
+        let a  = document.createElement('a');
+        a.href = gh;
+        a.download = 'image.png';
+        a.click()
+        /*let image
+        stage.toImage({
+            callback(img) {
+                 console.log(img.sec)
+            }
+        })
+
+        console.log(image)
+        let handle = await window.showSaveFilePicker()
+        let stream = await handle.createWritable()
+        await stream.write(image)
+        await stream.close()*/
+    }
+
+    document.getElementById('undo').addEventListener('click', () => {
+        if (historyAt < 0)
+            return
+
+        history[historyAt].undo()
+        historyAt--
+    })
+
+    document.getElementById('redo').addEventListener('click', () => {
+        if (history.length === historyAt + 1)
+            return
+
+        historyAt++
+        history[historyAt].redo()
+    })
+
+    document.getElementById('creating_node').addEventListener('click', () => {
+        let button = document.getElementById('creating_node')
+        if (button.firstChild.data === 'Завершить добавление вершины') {
+            button.firstChild.data = 'Добавить вершину'
+            isCreatingNode = false
+        } else {
+            if (isCreatingEdge)
+                document.getElementById('creating_edge').click()
+            button.firstChild.data = 'Завершить добавление вершины'
+            isCreatingNode = true
+        }
+    })
+
+    document.getElementById('creating_edge').addEventListener('click', (e) => {
+        let button = document.getElementById('creating_edge')
+
+        if (button.firstChild.data === 'Завершить создание ребра') {
+            button.firstChild.data = 'Добавить ребро'
+            isCreatingEdge = false
+        }
+        else {
+            if (isCreatingNode)
+                document.getElementById('creating_node').click()
+            button.firstChild.data = 'Завершить создание ребра'
+            isCreatingEdge = true
+        }
+    })
+
+    // обработка создание вершины
+    stage.on('click', (e) => {
+        if (e.evt.button === 2)
+            return
+
+        if (isCreatingNode) {
+            let id = nodes.size, x = stage.getPointerPosition().x, y = stage.getPointerPosition().y
+            addHistoryCommand({
+                undo: () => deleteNode(id),
+                redo: () => addNode(x, y, id)
+            }).redo()
+        }
+    })
+
+    // обработка контекстного меню на всем холсте
+    stage.on('contextmenu', (e) => {
+        if (e.target !== stage) {
+            e.evt.preventDefault()
+            currentElem = e.target
+        }
+    })
+
+    // по клику куда угодно (кроме элементов меню) закрыть контекстные меню
+    window.addEventListener('click', (e) => {
+        document.getElementById('edge_menu').style.display = 'none'
+        document.getElementById('node_menu').style.display = 'none'
+        if (!e.target.matches('.dropbtn1')) {
+            let myDropdown = document.getElementById("dropdown")
+            if (myDropdown.classList.contains('show')) {
+                myDropdown.classList.remove('show')
+            }
+        }
+
+        if (!e.target.matches('.dropbtn2')) {
+            let myDropdownTask = document.getElementById("dropdownTasks")
+            if (myDropdownTask.classList.contains('show')) {
+                myDropdownTask.classList.remove('show')
+            }
+        }
+
+        if (!e.target.matches('.dropAbout')) {
+            let myDropdownTask = document.getElementById("dropdownAbout")
+            if (myDropdownTask.classList.contains('show')) {
+                myDropdownTask.classList.remove('show')
+            }
+        }
+    })
+
+    function hover() {
+        let myDropdown = document.getElementById("dropdown")
+        if (myDropdown.classList.contains('show')) {
+            myDropdown.classList.remove('show')
+        }
+
+        myDropdown = document.getElementById("dropdownTasks")
+        if (myDropdown.classList.contains('show')) {
+            myDropdown.classList.remove('show')
+        }
+
+        myDropdown = document.getElementById("dropdownAbout")
+        if (myDropdown.classList.contains('show')) {
+            myDropdown.classList.remove('show')
+        }
+    }
+
+    function hoverAbout() {
+        let myDropdown = document.getElementById("dropdownTasks")
+        if (myDropdown.classList.contains('show')) {
+            myDropdown.classList.remove('show')
+        }
+    }
+
+    function hoverTasks() {
+        let myDropdown = document.getElementById("dropdownAbout")
+        if (myDropdown.classList.contains('show')) {
+            myDropdown.classList.remove('show')
+        }
+    }
+
+    document.getElementById('make_a_loop').addEventListener('click', () => {
+        let elem = currentElem
+        let weight = prompt('Введите вес:', '1')
+        addHistoryCommand({
+            undo: () => deleteTheLoop(elem.parent),
+            redo: () => makeALoop(elem.parent, weight)
+        }).redo()
+    })
+
+    document.getElementById('orientation').addEventListener('click', () => {
+        let elem = currentElem
+        addHistoryCommand({
+            undo: () => deleteEdgesOrientation(elem),
+            redo: () => makeEdgeOriented(elem)
+        }).redo()
+    })
+
+    document.getElementById('inverse').addEventListener('click', (e) => {
+        let elem = currentElem
+        addHistoryCommand({
+            undo: () => inverseOrientation(elem),
+            redo: () => inverseOrientation(elem)
+        }).redo()
+    })
+</script>
+</html>
