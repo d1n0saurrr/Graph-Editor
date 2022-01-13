@@ -38,7 +38,7 @@
         <div onmouseover="hoverTasks()" class="dropdown">
             <button class="dropbtn2" onclick="dropDownTasks()">Алгоритмы</button>
             <div class="dropdown-content" id="dropdownTasks">
-                <a onclick="addTask(bfs)">2. Поиск в ширину</a>
+                <a onclick="startEndPathPaint(bfs)">2. Поиск в ширину</a>
             </div>
         </div>
         <div onmouseover="hoverAbout()" class="dropdown">
@@ -98,6 +98,13 @@
 
     trs = document.getElementById('matrix').getElementsByTagName("tr")
 
+    function getId(name) {
+        for (let node of nodesDrawn.values()) {
+            if (node.children[1].text() === name)
+                return parseInt(node.id().replace(/node_/, ''))
+        }
+    }
+
     //изменения через матрицу смежности
     document.getElementById('matrix').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -113,7 +120,7 @@
                     break
             }
 
-            changedMatrix(parseInt(e.path[1].cells[0].textContent), i - 1, e.path[0].textContent, parseInt(oldTdValue))
+            changedMatrix(getId(e.path[1].cells[0].textContent), i - 1, e.path[0].textContent, parseInt(oldTdValue))
             hasChanged = true
             document.activeElement.blur()
         }
@@ -174,7 +181,7 @@
         reader.readAsText(file)
         reader.onload = readerEvent => {
             let matrix = [], count = 0
-            let text = readerEvent.target.result, res, idx
+            let text = readerEvent.target.result, res = readerEvent.target.result, idx
 
             while ((idx = text.indexOf("#")) !== -1) {
                 let idx2 = text.substring(idx).indexOf("\r\n") + idx
@@ -361,13 +368,23 @@
 
     async function saveAdjMtx() {
         let text = '  '
+        let names = []
+
+        for (let node of nodesDrawn.values()) {
+            text += node.children[1].text() + ' '
+            names.push(node.children[1].text())
+        }
+
+        text = text.trimRight()
+        text += "\r\n"
 
         for (let i = 1; i < trs.length; i++) {
+            text += names[i - 1] + ' '
             for (let j = 1; j < trs[i].cells.length; j++) {
                 text += trs[i].cells[j].textContent
 
                 if (j !== trs[i].cells.length - 1)
-                    text += " "
+                    text += ' '
             }
 
             if (i !== trs.length - 1)

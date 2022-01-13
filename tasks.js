@@ -1,4 +1,4 @@
-async function paintPath(path) {
+function paintPath(path) {
     alert('Путь: ' + path)
     for (let i = 0; i < path.length - 1; i++) {
         let curve = layer.findOne(`#line_${path[i]}_${path[i + 1]}_${nodes.get(path[i]).get(path[i + 1]).length - 1}`) !== undefined ?
@@ -7,15 +7,7 @@ async function paintPath(path) {
         curve.stroke('red')
     }
 
-    await new Promise(resolve => setTimeout(resolve, 500))
-    let save = confirm("Сохранить путь?")
-
-    if (save) {
-        let handle = await window.showSaveFilePicker()
-        let stream = await handle.createWritable()
-        await stream.write(path)
-        await stream.close()
-    }
+    save(path, "Сохранить путь?")
 }
 
 function returnDefaultPath(path) {
@@ -27,11 +19,7 @@ function returnDefaultPath(path) {
     }
 }
 
-function addTask(procedure) {
-    let start = parseInt(prompt("Введите начальную вершину", '0'))
-    let end = parseInt(prompt("Введите конечную вершину", '0'))
-    let path = procedure(start, end)
-
+function paintCommand(path) {
     addHistoryCommand({
         undo: () => {
             returnDefaultPath(path)
@@ -40,6 +28,39 @@ function addTask(procedure) {
             paintPath(path)
         }
     }).redo()
+}
+
+async function save(text, message) {
+    await new Promise(resolve => setTimeout(resolve, 500))
+    let save = confirm(message)
+
+    if (save) {
+        let handle = await window.showSaveFilePicker()
+        let stream = await handle.createWritable()
+        await stream.write(text)
+        await stream.close()
+    }
+}
+
+function getAdjMatrix() {
+    let matrix = []
+    for (let i = 1; i < trs.length; i++) {
+        matrix.push([])
+        for (let j = 1; j < trs[i].cells.length; j++) {
+            matrix[i - 1].push(parseInt(trs[i].cells[j].textContent))
+        }
+    }
+
+    return matrix
+}
+
+function startEndPathPaint(procedure) {
+    let start = prompt("Введите начальную вершину", '0')
+    let end = prompt("Введите конечную вершину", '0')
+    start = getId(start)
+    end = getId(end)
+    let path = procedure(start, end)
+    paintCommand(path)
 }
 
 function bfs(start, end) {
@@ -51,8 +72,8 @@ function bfs(start, end) {
     while(queue.length > 0) {
         let v = queue.shift()
 
-        for(let neighbor of nodes.get(v).keys()) {
-            if(!visited.includes(neighbor)) {
+        for(let [neighbor, weight] of nodes.get(v)) {
+            if(weight[0] !== 0 && !visited.includes(neighbor)) {
                 queue.push(neighbor)
                 visited.push(neighbor)
                 d[neighbor] = d[neighbor] + 1

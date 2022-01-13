@@ -231,7 +231,7 @@ function changedMatrix(id1, id2, weight, oldWeight) {
 function addNode(x, y, id, name = id) {
     nodes.set(id, new Map())
     nodesDrawn.set(id, buildNode(x, y, id, name))
-    appendMatrix(id)
+    appendMatrix(name)
 }
 
 function deleteNode(id) {
