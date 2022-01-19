@@ -38,6 +38,7 @@
         <div onmouseover="hoverTasks()" class="dropdown">
             <button class="dropbtn2" onclick="dropDownTasks()">Алгоритмы</button>
             <div class="dropdown-content" id="dropdownTasks">
+                <a onclick="generate()">Сгенерировать матрицу смежности</a>
                 <a onclick="startEndPathPaint(bfs)">2. Поиск в ширину</a>
             </div>
         </div>
@@ -210,8 +211,8 @@
             }
 
             for (let i = 0; i < matrix.length; i++) {
-                addNode(xCenter + 100 * Math.cos(90 + 2 * Math.PI * i / matrix.length),
-                        yCenter + 100 * Math.sin(90 + 2 * Math.PI * i / matrix.length), i, nodes[i])
+                addNode(xCenter + 150 * Math.cos(90 + 2 * Math.PI * i / matrix.length),
+                        yCenter + 150 * Math.sin(90 + 2 * Math.PI * i / matrix.length), i, nodes[i])
             }
 
             for (let i = 0; i < matrix.length; i++) {

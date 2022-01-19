@@ -178,7 +178,9 @@ function changedMatrix(id1, id2, weight, oldWeight) {
     } else if (weight === 0) {
         addHistoryCommand({
             undo: () => {
-                if (curveName === id1id2) {
+                if (id1 === id2)
+                    makeALoop(nodesDrawn.get(id1), oldWeight)
+                else if (curveName === id1id2) {
                     deleteEdge(id1, id2)
                     addEdge(id1, id2, oldWeight)
                 } else {
@@ -187,7 +189,9 @@ function changedMatrix(id1, id2, weight, oldWeight) {
                 }
             },
             redo: () => {
-                if (curveName === id1id2) {
+                if (id1 === id2)
+                    deleteTheLoop(nodesDrawn.get(id1))
+                else if (curveName === id1id2) {
                     deleteEdge(id1, id2)
                     addEdge(id1, id2, weight21)
                     makeEdgeOriented(layer.findOne('#' + curveName))
