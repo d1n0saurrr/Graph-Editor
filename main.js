@@ -13,6 +13,7 @@ let historyAt = -1
 let nodes = new Map()
 let nodesDrawn = new Map()
 let curves = new Map()
+let nodes2 = undefined
 
 let isCreatingNode = false
 let isCreatingEdge = false
@@ -24,7 +25,6 @@ let editCurve
 
 function show() {
     //console.log(nodes)
-
     for (let [id1, value] of nodes) {
         console.log(id1 + ":\n")
         for (let [id2, stack] of value) {

@@ -1,3 +1,7 @@
+<!-- TODO -->
+<!--Отмена при добавление ребра-->
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +10,7 @@
     <script src="konva.js"></script>
     <script src="main.js"></script>
     <script src="tasks.js"></script>
+    <script src="PriorityQueue.js"></script>
     <link rel="stylesheet" type="text/css" href="style/main.css"/>
 </head>
 <body>
@@ -40,6 +45,17 @@
             <div class="dropdown-content" id="dropdownTasks">
                 <a onclick="generate()">Сгенерировать матрицу смежности</a>
                 <a onclick="startEndPathPaint(bfs)">2. Поиск в ширину</a>
+                <a onclick="startEndPathPaint(bestFirstSearch)">3. Поиск по первому наилучшему</a>
+                <a onclick="task4()">4. Алгоритм Дейкстры</a>
+                <a onclick="startEndPathPaint(aStar)">5. Алгоритм A*</a>
+                <a onclick="task6()">6. Вес, радиус, диаметр и степень</a>
+                <a onclick="task8()">8. Связность графа</a>
+                <a onclick="task7()">7. Изоморфизм графов</a>
+                <a onclick="task9()">9. Дополнение графа</a>
+                <a onclick="task13()">13. Минимальное остовное дерево</a>
+                <a onclick="task14()">14. Задача о цикле</a>
+                <a onclick="task15()">15. Раскраска графа</a>
+                <a onclick="task16()">16. Задача о свадьбах</a>
             </div>
         </div>
         <div onmouseover="hoverAbout()" class="dropdown">
@@ -446,7 +462,7 @@
     }
 
     async function saveEdges() {
-        let text = 'Edges{', edgesCount = 0, x, y, part
+        let text = 'Edges{', edgesCount = 0, x, y
 
         for (let i = 1; i < trs.length; i++) {
             for (let j = i; j < trs[i].cells.length; j++) {
@@ -524,7 +540,7 @@
         }
     })
 
-    document.getElementById('creating_edge').addEventListener('click', (e) => {
+    document.getElementById('creating_edge').addEventListener('click', () => {
         let button = document.getElementById('creating_edge')
 
         if (button.firstChild.data === 'Завершить создание ребра') {
@@ -635,7 +651,7 @@
         }).redo()
     })
 
-    document.getElementById('inverse').addEventListener('click', (e) => {
+    document.getElementById('inverse').addEventListener('click', () => {
         let elem = currentElem
         addHistoryCommand({
             undo: () => inverseOrientation(elem),
