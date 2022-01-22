@@ -29,7 +29,8 @@ class ExtremeGraph {
             for (const elem of base) {
                 if (elem.second > prev || elem.first > this.matrix.length) {
                     console.log("Ошибка, неверная база");
-                    return undefined;
+                    this.isExtreme = false;
+                    return;
                 } else {
                     while (curI <= elem.first - 1) {
                         for (let i = 0; i < elem.second; i++) {
@@ -45,7 +46,6 @@ class ExtremeGraph {
             }
             this.findVertsPow();
             this.findEdges();
-            this.additionGraph = new ExtremeGraph(undefined, this.findAddition());
             this.isExtreme = this.checkExtreme();
 
         } else if (base === undefined) {
@@ -68,20 +68,29 @@ class ExtremeGraph {
         console.log('///////////////');
     }
 
+    copyMatrix(matrix) {
+        let matrix1 = Array(matrix.length)
+        for (let i = 0; i < matrix.length; i++) {
+            matrix1[i] = [...matrix[i]]
+        }
+
+        return matrix1
+    }
+
     getReduceMatrix(graph) {
         let matrix1 = [];
         let matrix2 = [];
         if (this.matrix.length >= graph.matrix.length) {
-            matrix1 = [...this.matrix];
+            matrix1 = this.copyMatrix(this.matrix);
             matrix2 = this.exposeMatrix(graph.matrix, this.matrix.length);
         } else return undefined;
         let res = Array(matrix1.length).fill(null).map(() => Array(matrix1.length).fill(0));
         for (let i = 0; i < res.length; i++) {
             for (let j = 0; j < res.length; j++) {
-                if (matrix1[i][j] === 1 && matrix2[i][j] === 1) res[i][j] = 0;
+                if (matrix1[i][j] === 1 && matrix2[i][j] === 1) matrix1[i][j] = 0;
             }
         }
-        return res
+        return matrix1;
     }
 
     getIntersectionMatrix(graph) {
@@ -89,10 +98,10 @@ class ExtremeGraph {
         let matrix2 = [];
 
         if (this.matrix.length > graph.matrix.length) {
-            matrix1 = [...this.matrix];
+            matrix1 = this.copyMatrix(this.matrix);
             matrix2 = this.exposeMatrix(graph.matrix, this.matrix.length);
         } else {
-            matrix1 = [...graph.matrix];
+            matrix1 = this.copyMatrix(graph.matrix);
             matrix2 = this.exposeMatrix(this.matrix, graph.matrix.length);
         }
         let res = Array(matrix1.length).fill(null).map(() => Array(matrix1.length).fill(0));
@@ -109,10 +118,10 @@ class ExtremeGraph {
         let matrix2 = [];
 
         if (this.matrix.length > graph.matrix.length) {
-            matrix1 = [...this.matrix];
+            matrix1 = this.copyMatrix(this.matrix);
             matrix2 = this.exposeMatrix(graph.matrix, this.matrix.length);
         } else {
-            matrix1 = [...graph.matrix];
+            matrix1 = this.copyMatrix(graph.matrix);
             matrix2 = this.exposeMatrix(this.matrix, graph.matrix.length);
         }
         let res = Array(matrix1.length).fill(null).map(() => Array(matrix1.length).fill(0));
@@ -163,12 +172,12 @@ class ExtremeGraph {
     findBase() {
         this.base = [];
         let prev = this.vertsPowVector[0];
-        for (let i = 0; i < (this.vertsPowVector.length + 2 - 1) / 2;) {
+        for (let i = 0; i < Math.ceil(this.vertsPowVector.length / 2);) {
             i = this.vertsPowVector.lastIndexOf(prev);
-            if (i < (this.vertsPowVector.length + 2 - 1) / 2) {
+            if (i < (Math.ceil(this.vertsPowVector.length / 2))) {
                 this.base.push({first: i + 1, second: prev + 1});
             } else {
-                this.base.push({first: (this.vertsPowVector.length + 2 - 1) / 2, second: prev + 1});
+                this.base.push({first: Math.ceil(this.vertsPowVector.length / 2), second: prev + 1});
             }
             prev = this.vertsPowVector[i + 1];
         }

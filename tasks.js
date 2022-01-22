@@ -289,6 +289,9 @@ function task6(needCenter = false) {
             else
                 degrees[node2] += 2
 
+    if (!task8(true))
+        rad = Number.MAX_VALUE
+
     let text
     if (rad === Number.MAX_VALUE)
         text = "У графа нет радиуса и диаметра.\nВектор степеней: " + degrees
@@ -299,9 +302,8 @@ function task6(needCenter = false) {
     save(text, "Сохранить данные")
 }
 
-function task8() {
-    clear()
-    let adjMtx = getAdjMatrix(), isOriented = false, connectivity = undefined
+function task8(connect) {
+    let isOriented = false, connectivity = undefined
     for (let curve of curves.values())
         if (curve.startArrow !== undefined && curve.startArrow.visible()
             || curve.endArrow !== undefined && curve.endArrow.visible()) {
@@ -309,20 +311,30 @@ function task8() {
             break
         }
 
-    let matrix = [], strong = true
+    let matrix = [], weak = false
     for (let i = 0; i < nodes.size; i++)
         matrix.push(dijkstra(i))
 
     if (!isOriented) {
         for (let line of matrix)
             if (line.includes(-1)) {
+                if (connect)
+                    return false
+
+                clear()
                 connectivity = "Граф является несвязным"
                 break
             }
 
-        if (connectivity === undefined)
+        if (connectivity === undefined) {
+            if (connect)
+                return true
+
+            clear()
             connectivity = "Граф является связным"
+        }
     } else {
+        clear()
         for (let line of matrix)
             if (line.includes(-1)) {
                 connectivity = "Граф является несвязным"
@@ -342,13 +354,13 @@ function task8() {
 
                 for (let line2 of matrix2) {
                     if (line2.includes(-1))
-                        strong = false
+                        weak = true
                 }
 
                 break
             }
 
-        if (connectivity === undefined && !strong)
+        if (connectivity === undefined && !weak)
             connectivity = "Граф является сильно-связным"
         else
             connectivity = "Граф является слабо-связным"
@@ -393,7 +405,6 @@ function bridgesCount() {
     function dfs(v, p = -1) {
         used[v] = true
         tin[v] = fup[v] = timer++
-
         for (let i = 0; i < g[v].length; ++i) {
             let to = g[v][i]
             if (to === p)
@@ -996,10 +1007,17 @@ function task11() {
     clear()
     let vector = prompt("Введите вектор:")
     vector = vector.split(" ")
-    vector.forEach(el => el = parseInt(el))
-    let solver = new ReductionAlgoSolver(vector)
-    if (solver === undefined) {
+    let vec = []
+    vector.forEach(el => vec.push(parseInt(el)))
+    let solver = new ReductionAlgoSolver(vec)
+    if (!solver.isCorrect) {
         alert("Вектор не приводим")
+        let str = "Промежуточные векторы:\n"
+        for (const solverElement of solver.answer) {
+            str += solverElement + '\n'
+        }
+
+        alerting(str)
         return
     }
 
@@ -1010,7 +1028,7 @@ function task11() {
 
     alerting(str)
     if (solver.graph.isExtreme) {
-        alerting("Граф экстримальный", true)
+        alerting("Граф экстремальный", true)
         str = "База:\n"
         for (const el of solver.graph.base) {
             str += el.first + " -> " + el.second + '\n'
@@ -1018,10 +1036,10 @@ function task11() {
 
         alerting(str, true)
     } else {
-        alerting("Граф не экстримальный", true)
-        let matrix = solver.graph.matrix
-        reDraw(matrix)
+        alerting("Граф не экстремальный", true)
     }
+
+    reDraw(solver.graph.matrix)
 }
 
 function base(arr) {
@@ -1092,13 +1110,14 @@ async function task12(n, solver) {
             }
 
             let solver1 = new ExtrimGraphsSolver(base1, base2)
+            console.log(solver1)
 
-            if (solver1.firstGraph === undefined) {
+            if (!solver1.firstGraph.isExtreme) {
                 alert("Первая база задана неверно")
                 return
             }
 
-            if (solver1.secGraph === undefined) {
+            if (!solver1.secGraph.isExtreme) {
                 alert("Вторая база задана неверно")
                 return
             }
@@ -1120,7 +1139,7 @@ async function task12(n, solver) {
             if (solver.firstAdditional.isExtreme)
                 text += "База дополнения первого графа:\n" + base(solver.firstAdditional.base)
             else {
-                text += "Дополнение первого графа не экстремально\n"
+                text += "Дополнение первого графа не экстремально"
             }
 
             alerting(text + "\n", true)
@@ -1134,7 +1153,7 @@ async function task12(n, solver) {
             if (solver.secAdditional.isExtreme)
                 text += "База дополнения второго графа:\n" + base(solver.secAdditional.base)
             else {
-                text += "Дополнение второго графа не экстремально\n"
+                text += "Дополнение второго графа не экстремально"
             }
 
             alerting(text + "\n", true)
@@ -1148,7 +1167,7 @@ async function task12(n, solver) {
             if (solver.union.isExtreme)
                 text += "База объединения графов:\n" + base(solver.union.base)
             else {
-                text += "Объединение графов не экстремально\n"
+                text += "Объединение графов не экстремально"
             }
 
             alerting(text + "\n", true)
@@ -1162,7 +1181,7 @@ async function task12(n, solver) {
             if (solver.intersection.isExtreme)
                 text += "База пересечения графов:\n" + base(solver.intersection.base)
             else {
-                text += "Пересечение графов не экстремально\n"
+                text += "Пересечение графов не экстремально"
             }
 
             alerting(text + "\n", true)
@@ -1177,7 +1196,7 @@ async function task12(n, solver) {
                 if (solver.firstReduce.isExtreme)
                     text += "База вычитания из первого графа второго графа:\n" + base(solver.firstReduce.base)
                 else {
-                    text += "Вычитание из первого графа второго графа не экстремально\n"
+                    text += "Вычитание из первого графа второго графа не экстремально"
                 }
 
                 alerting(text + "\n", true)
@@ -1196,7 +1215,7 @@ async function task12(n, solver) {
                 if (solver.secReduce.isExtreme)
                     text += "База вычитания из второго графа первого графа:\n" + base(solver.secReduce.base)
                 else {
-                    text += "Вычитание из второго графа первого графа не экстремально\n"
+                    text += "Вычитание из второго графа первого графа не экстремально"
                 }
 
                 alerting(text + "\n", true)
