@@ -13,8 +13,8 @@
     <script src="algos/extrim-graphs.js"></script>
     <link rel="stylesheet" type="text/css" href="style/main.css"/>
 </head>
-<body>
-    <div class="navbar">
+<body style="font-family: Century Gothic,serif">
+    <div class="navbar" style="font-family: Century Gothic,serif">
         <div class="dropdown">
             <button class="dropbtn1" onclick="dropDown()">Файл</button>
             <div class="dropdown-content" id="dropdown">
@@ -43,6 +43,7 @@
         <div onmouseover="hoverTasks()" class="dropdown">
             <button class="dropbtn2" onclick="dropDownTasks()">Алгоритмы</button>
             <div class="dropdown-content" id="dropdownTasks">
+                <a onclick="task20()">20. Задача коммивояжёра</a>
                 <a onclick="generate()">Сгенерировать матрицу смежности</a>
                 <a onclick="startEndPathPaint(bfs)">2. Поиск в ширину</a>
                 <a onclick="startEndPathPaint(bestFirstSearch)">3. Поиск по первому наилучшему</a>
@@ -78,10 +79,11 @@
     <div onmouseover="hover()">
         <div id="container" class="box1"></div>
         <div>
-            <textarea id="alert" style="float: right; width: 28%; height: 10vh; overflow-y: scroll; resize: vertical" readonly></textarea>
+            <label style="display: block; font-size: 20pt; text-align: center">Вывод программы</label>
+            <textarea id="alert" style="font-family: Century Gothic,serif; float: right; width: 28%; height: 10vh; overflow-y: scroll; resize: vertical" readonly></textarea>
         </div>
         <div class="box2" style="overflow-x: scroll; overflow-y: scroll">
-            <h2>Матрица смежности</h2><br>
+            <br><label style="display: block; font-size: 20pt; text-align: center">Матрица смежности</label><br>
             <table id="matrix">
                 <tr>
                     <td>&nbsp</td>

@@ -229,7 +229,10 @@ function task4() {
     let matrix = ''
 
     for (let i = 0; i < nodes.size; i++)
-        matrix += dijkstra(i) + '\n'
+        if (i !== nodes.size - 1)
+            matrix += dijkstra(i) + '\n'
+        else
+            matrix += dijkstra(i)
 
     alerting("Матрица расстояний от каждой вершины до каждой:\n" + matrix, true)
     save(matrix, "Сохранить матрицу")
@@ -912,6 +915,7 @@ function task7() {
             }
         }
 
+        clear()
         alert(`Для проверки на изоморфизм этого графа, откройте второй граф любым предложенным способом!\nПосле снова нажмите эту кнопку.`)
     } else {
         if (stupidMethod(getAdjMatrix2(getMapEdges(nodes2)), getAdjMatrix2(getMapEdges(nodes))))
