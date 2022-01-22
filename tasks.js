@@ -643,49 +643,26 @@ function task15(getColorCount = false) {
         adjLists[i] = adjLists[i].idx
     }
 
-    let chromaticMin = nodes.size, painteds, used
+    let chromaticMin = nodes.size, painteds, used, painted = Array(nodes.size).fill(-1), colors = []
 
     for (let n = 0; n < nodes.size; n++) {
-        let painted = Array(nodes.size).fill(-1), colors = []
-        painted[n] = 0
-        colors.push(0)
         for (let i = 0; i < painted.length; i++) {
             if (painted[i] === -1) {
-                used = Array(colors.length).fill(false)
-                for (let j = 0; j < lists[i].length; j++) {
-                    if (painted[adjLists.indexOf(lists[i][j])] !== -1)
-                        used[painted[adjLists.indexOf(lists[i][j])]] = true
-                }
-
-                if (used.indexOf(false) === -1) {
-                    painted[i] = colors.length
-                    colors.push(colors.length)
-                } else {
-                    painted[i] = used.indexOf(false)
-                }
-
+                painted[i] = colors.length
+                colors.push(colors.length)
 
                 for (let j = i + 1; j < painted.length; j++) {
                     if (!lists[i].includes(adjLists[j]) && painted[j] === -1) {
                         painted[j] = painted[i]
                         for (let k = 0; k < lists[j].length; k++) {
                             if (painted[adjLists.indexOf(lists[j][k])] === painted[j]) {
-                                if (painted[j] !== colors[0])
-                                    painted[j] = colors[0]
-                                else
-                                    painted[j] = -1
-
+                                painted[j] = -1
                                 break
                             }
                         }
                     }
                 }
             }
-        }
-
-        if (colors.length < chromaticMin) {
-            chromaticMin = colors.length
-            painteds = [ ...painted]
         }
     }
 
@@ -698,9 +675,9 @@ function task15(getColorCount = false) {
                 node.children[0].fill('#ddd')
         },
         redo: () => {
-            alerting("Хроматическое число графа: " + chromaticMin)
+            alerting("Хроматическое число графа: " + colors.length)
             for (let i = 0; i < adjLists.length; i++) {
-                let int = painteds[i] + 1
+                let int = painted[i] + 1
                 nodesDrawn.get(adjLists[i]).children[0].fill(
                     'rgb(' + int * 123 % 255 + ',' + int * 547 % 255 + ',' + int * 432 % 255 + ')'
                 )
