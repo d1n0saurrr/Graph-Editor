@@ -1,7 +1,3 @@
-<!-- TODO -->
-<!--Отмена при добавление ребра-->
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,6 +7,10 @@
     <script src="main.js"></script>
     <script src="tasks.js"></script>
     <script src="PriorityQueue.js"></script>
+    <script src="com.js"></script>
+    <script src="gamma-alg.js"></script>
+    <script src="reduction-algo.js"></script>
+    <script src="extrim-graphs.js"></script>
     <link rel="stylesheet" type="text/css" href="style/main.css"/>
 </head>
 <body>
@@ -49,9 +49,12 @@
                 <a onclick="task4()">4. Алгоритм Дейкстры</a>
                 <a onclick="startEndPathPaint(aStar)">5. Алгоритм A*</a>
                 <a onclick="task6()">6. Вес, радиус, диаметр и степень</a>
-                <a onclick="task8()">8. Связность графа</a>
                 <a onclick="task7()">7. Изоморфизм графов</a>
+                <a onclick="task8()">8. Связность графа</a>
                 <a onclick="task9()">9. Дополнение графа</a>
+                <a onclick="task10()">10. Планарность</a>
+                <a onclick="task11()">11. Восстановление графа из вектора</a>
+                <a onclick="task12(0, undefined)">12. Экстремальные графы</a>
                 <a onclick="task13()">13. Минимальное остовное дерево</a>
                 <a onclick="task14()">14. Задача о цикле</a>
                 <a onclick="task15()">15. Раскраска графа</a>
@@ -68,10 +71,15 @@
         </div>
         <a onmouseover="hover()" href="документы/Туториал%20по%20использованию%20редактора%20графов.pdf">Туториал</a>
         <a onmouseover="hover()" href="документы/Graphs-labs2019.pdf">ТЗ</a>
+        <a id="save" onmouseover="hover()" onclick="saveClick()" hidden>Save</a>
+        <a id="next" onmouseover="hover()" onclick="nextClick()" hidden>Next</a>
     </div>
 
     <div onmouseover="hover()">
         <div id="container" class="box1"></div>
+        <div>
+            <textarea id="alert" style="float: right; width: 28%; height: 10vh; overflow-y: scroll; resize: vertical" readonly></textarea>
+        </div>
         <div class="box2" style="overflow-x: scroll; overflow-y: scroll">
             <h2>Матрица смежности</h2><br>
             <table id="matrix">
@@ -96,6 +104,47 @@
 </body>
 
 <script>
+    let text, next = 0, solver = undefined
+
+    function alerting(message, cont = false) {
+        if (!cont)
+            document.getElementById('alert').textContent = message
+        else
+            document.getElementById('alert').textContent += "\n" + message
+
+        document.getElementById('alert').scrollTop = document.getElementById('alert').scrollHeight
+    }
+
+    function clear() {
+        document.getElementById('alert').textContent = ''
+        document.getElementById('save').hidden = true
+        document.getElementById('next').hidden = true
+    }
+
+    function showSaveButton(name, textt) {
+        document.getElementById('save').textContent = name
+        hideSaveButton()
+        text = textt
+    }
+
+    function hideSaveButton() {
+        document.getElementById('save').hidden = false
+    }
+
+    function saveClick() {
+        saveFile(text.toString())
+    }
+
+    function showNextButton(n, solver1) {
+        solver = solver1
+        next = n
+        document.getElementById('next').hidden = n === -1
+    }
+
+    function nextClick() {
+        task12(next, solver)
+    }
+
     window.addEventListener("beforeunload", function (e) {
         if (historyAt > 0 || history[0].redo === undefined)
             e.returnValue = 'Dialog text here'
@@ -171,6 +220,7 @@
     }))
 
     document.getElementById('adjacency_file').addEventListener('change', (e) => {
+        clear()
         let file = e.target.files[0]
 
         if (file === undefined)
@@ -242,6 +292,7 @@
     })
 
     document.getElementById('incidence_file').addEventListener('change', (e) => {
+        clear()
         let file = e.target.files[0]
 
         if (file === undefined)
@@ -322,6 +373,7 @@
     })
 
     document.getElementById('edges_list').addEventListener('change', (e) => {
+        clear()
         let file = e.target.files[0]
 
         if (file === undefined)
@@ -512,6 +564,7 @@
     }
 
     document.getElementById('undo').addEventListener('click', () => {
+        clear()
         if (historyAt < 0)
             return
 
@@ -520,6 +573,7 @@
     })
 
     document.getElementById('redo').addEventListener('click', () => {
+        clear()
         if (history.length === historyAt + 1)
             return
 

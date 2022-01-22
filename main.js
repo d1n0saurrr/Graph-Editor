@@ -64,8 +64,11 @@ function addToMatrix(id1, id2, weight12, weight21) {
     } else if (weight12 !== 0 && weight21 === 0) {
         name = addEdge(id1, id2, weight12)
         makeEdgeOriented(layer.findOne('#' + name))
+    } else if (weight12 === weight21) {
+        addEdge(id1, id2, weight12)
     } else {
         addEdge(id1, id2, weight12)
+        addEdge2Text(id2, id1, weight21)
     }
 }
 
@@ -153,11 +156,13 @@ function changedMatrix(id1, id2, weight, oldWeight) {
     weight21 = parseInt(weight21)
 
     if (curve === undefined) {
+        console.log("here")
         addHistoryCommand({
             undo: () => deleteEdge(id1, id2),
             redo: () => addEdge(id1, id2, weight)
         })
     } else if (weight === 0 && weight21 === 0) {
+        console.log("2")
         addHistoryCommand({
             undo: () => {
                 if (curveName === id1id2) {
@@ -176,6 +181,7 @@ function changedMatrix(id1, id2, weight, oldWeight) {
             }
         })
     } else if (weight === 0) {
+        console.log("3")
         addHistoryCommand({
             undo: () => {
                 if (id1 === id2)
@@ -203,7 +209,8 @@ function changedMatrix(id1, id2, weight, oldWeight) {
                 }
             }
         })
-    } else {
+    } else if (oldWeight === 0 || id1 === id2) {
+        console.log("4")
         addHistoryCommand({
             undo: () => {
                 if (curveName === id1id2) {
@@ -225,6 +232,23 @@ function changedMatrix(id1, id2, weight, oldWeight) {
                     deleteEdge(id2, id1)
                     addEdge(id2, id1, weight)
                 }
+            }
+        })
+    } else {
+        addHistoryCommand({
+            undo: () => {
+                if (weight === weight21)
+                    addEdge2Text(id1, id2, oldWeight)
+                else
+                    deleteEdgeText2(id1, id2)
+            },
+            redo: () => {
+                if (weight === weight21) {
+                    deleteEdgeText2(id1, id2)
+                    deleteEdge(Math.min(id1, id2), Math.max(id1, id2))
+                    addEdge(id1, id2, weight)
+                } else
+                    addEdge2Text(id1, id2, weight)
             }
         })
     }
@@ -453,6 +477,47 @@ function drawEdge(curve, name) {
     return bezierLinePath.getZIndex()
 }
 
+function addEdge2Text(id1, id2, weight) {
+    updEdgeMatrix(id1, id2, weight)
+    let id1id2 = `line_${id1}_${id2}_${0}`, id2id1 = `line_${id2}_${id1}_${0}`
+    let curveName = curves.get(id1id2) !== undefined ? id1id2 : id2id1
+    let curve = curves.get(curveName), percent
+    if (id1 < id2) {
+        percent = 0.8
+    } else {
+        percent = 0.2
+    }
+
+    let text2 = new Konva.Text({
+        x: findMidBLine(curve.start.x(), curve.control1.x(), curve.control2.x(), curve.end.x(), percent),
+        y: findMidBLine(curve.start.y(), curve.control1.y(), curve.control2.y(), curve.end.y(), percent),
+        id: 'text2_' + curveName,
+        text: weight,
+        fontSize: 20,
+        fontStyle: 'bold',
+        fontFamily: 'Calibri',
+        fill: 'red',
+    })
+    layer.add(text2)
+    curve.text2 = text2
+    curve.percent = percent
+    curve.text.x(findMidBLine(curve.start.x(), curve.control1.x(), curve.control2.x(), curve.end.x(), 1 - percent))
+    curve.text.y(findMidBLine(curve.start.y(), curve.control1.y(), curve.control2.y(), curve.end.y(), 1 - percent))
+    nodes.get(id1).get(id2)[0] = weight
+}
+
+function deleteEdgeText2(id1, id2) {
+    updEdgeMatrix(id1, id2, nodes.get(id2).get(id1)[0])
+    let id1id2 = `line_${id1}_${id2}_${0}`, id2id1 = `line_${id2}_${id1}_${0}`
+    let curveName = curves.get(id1id2) !== undefined ? id1id2 : id2id1
+    let curve = curves.get(curveName)
+    curve.text2 = undefined
+    nodes.get(id1).get(id2)[0] = nodes.get(id2).get(id1)[0]
+    layer.findOne(`#text2_` + curveName).destroy()
+    curve.text.x(findMidBLine(curve.start.x(), curve.control1.x(), curve.control2.x(), curve.end.x()))
+    curve.text.y(findMidBLine(curve.start.y(), curve.control1.y(), curve.control2.y(), curve.end.y()))
+}
+
 function addEdge(idNodeFrom, idNodeTo, weight) {
     if (idNodeFrom === idNodeTo) {
         return makeALoop(nodesDrawn.get(idNodeFrom), weight)
@@ -501,6 +566,7 @@ function addEdge(idNodeFrom, idNodeTo, weight) {
         startArrow: undefined,
         endArrow: undefined,
         text: undefined,
+        text2: undefined,
         editing: false
     })
 
@@ -525,9 +591,9 @@ function addEdge(idNodeFrom, idNodeTo, weight) {
     return name
 }
 
-function findMidBLine(p0, p1, p2, p3) {
-    return p0 * Math.pow(1 - 0.5, 3) + p1 * 3 * 0.5 * Math.pow(1 - 0.5, 2)
-        + p2 * 3 * (1 - 0.5) * Math.pow(0.5, 2) + p3 * Math.pow(0.5, 3)
+function findMidBLine(p0, p1, p2, p3, dot = 0.5) {
+    return p0 * Math.pow(1 - dot, 3) + p1 * 3 * dot * Math.pow(1 - dot, 2)
+        + p2 * 3 * (1 - dot) * Math.pow(dot, 2) + p3 * Math.pow(dot, 3)
 }
 
 // задание Z индекса для вершин
@@ -568,6 +634,9 @@ function deleteEdge(id1, id2) {
     layer.findOne(`#` + name).destroy()
     layer.findOne(`#bezierLinePath_` + name).destroy()
     layer.findOne(`#text_` + name).destroy()
+    if (curves.get(name).text2 !== undefined)
+        layer.findOne(`#text2_` + name).destroy()
+
     curves.get(name).control1.destroy()
     curves.get(name).control2.destroy()
 
@@ -787,8 +856,15 @@ function updateLines(id = -1) {
             for (let [key, value] of nodes.get(id)) {
                 for (let i = 0; i < value.length; i++) {
                     let curve = curves.get(`line_${key}_${id}_${i}`) !== undefined ? curves.get(`line_${key}_${id}_${i}`) : curves.get(`line_${id}_${key}_${i}`)
-                    curve.text.x(findMidBLine(curve.start.x(), curve.control1.x(), curve.control2.x(), curve.end.x()))
-                    curve.text.y(findMidBLine(curve.start.y(), curve.control1.y(), curve.control2.y(), curve.end.y()))
+                    if (curve.text2 === undefined) {
+                        curve.text.x(findMidBLine(curve.start.x(), curve.control1.x(), curve.control2.x(), curve.end.x()))
+                        curve.text.y(findMidBLine(curve.start.y(), curve.control1.y(), curve.control2.y(), curve.end.y()))
+                    } else {
+                        curve.text2.x(findMidBLine(curve.start.x(), curve.control1.x(), curve.control2.x(), curve.end.x(), curve.percent))
+                        curve.text2.y(findMidBLine(curve.start.y(), curve.control1.y(), curve.control2.y(), curve.end.y(), curve.percent))
+                        curve.text.x(findMidBLine(curve.start.x(), curve.control1.x(), curve.control2.x(), curve.end.x(), 1 - curve.percent))
+                        curve.text.y(findMidBLine(curve.start.y(), curve.control1.y(), curve.control2.y(), curve.end.y(), 1 - curve.percent))
+                    }
 
                     if (curve.startArrow !== undefined) {
                         updateArrowOfCurve(curve)
